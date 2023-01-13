@@ -96,130 +96,93 @@ void setup() {
 
 // The loop routine runs over and over again forever.
 void loop() {
-    //Serial.println(pulseIn(PIN_CH4_CONTROLER, HIGH));
-    speedR = pulseIn(PIN_CH2_CONTROLER, HIGH);
-    speedL = pulseIn(PIN_CH3_CONTROLER, HIGH);
-    ch5Signal = pulseIn(PIN_CH5_CONTROLER, HIGH);
-    //ch6Signal = pulseIn(PIN_CH6_CONTROLER, HIGH);
-    ch7Signal = pulseIn(PIN_CH7_CONTROLER, HIGH);
+  //Serial.println(pulseIn(PIN_CH4_CONTROLER, HIGH));
+  speedR = pulseIn(PIN_CH2_CONTROLER, HIGH);
+  speedL = pulseIn(PIN_CH3_CONTROLER, HIGH);
+  ch5Signal = pulseIn(PIN_CH5_CONTROLER, HIGH);
+  //ch6Signal = pulseIn(PIN_CH6_CONTROLER, HIGH);
+  ch7Signal = pulseIn(PIN_CH7_CONTROLER, HIGH);
 
-    //Ustawienia automatycznego dzialania lazika
-    if(ch7Signal < 1300)
-      autoModStatus = true;
-    else
-      autoModStatus = false;
+  //Ustawienia automatycznego dzialania lazika
+  if(ch7Signal < 1300)
+    autoModStatus = true;
+  else
+    autoModStatus = false;
 
-    //zatrzymanie lazika jesli kontroler jest wylaczony
-    if(speedR < 930 || speedR > 2070 || speedL < 930 || speedL > 2070 || ((ch7Signal > 1300 && ch7Signal < 1700) || ch7Signal < 800))
-    {
-      analogWrite(PIN_PWM_R, 0);
-      analogWrite(PIN_PWM_L, 0);
-    }
-    else {
-      if(autoModStatus == false)
-      {
-        if(speedR >= (BASIC_CONTROLER_INPUT - 50) && speedR <= (BASIC_CONTROLER_INPUT + 50) && speedL >= (BASIC_CONTROLER_INPUT - 50) && speedL <= (BASIC_CONTROLER_INPUT + 50)){
-          rPinLightIntensity = analogRead(R_PIN);
-          lPinLightIntensity = analogRead(L_PIN);
-          
-          if(rPinLightIntensity > defaultLightIntensity + 50){
-            digitalWrite(PIN_DIR_R, HIGH);
-            
-            if((rPinLightIntensity - (defaultLightIntensity + 50)) < 255){
-              analogWrite(PIN_PWM_R, rPinLightIntensity - (defaultLightIntensity + 50));
-            }
-            else{
-              analogWrite(PIN_PWM_R, 255);
-            }
-          }
-          else{
-            analogWrite(PIN_PWM_R, 0);
-          }
-          
-          if(lPinLightIntensity > defaultLightIntensity + 50){
-            digitalWrite(PIN_DIR_L, HIGH);
-            
-            if((lPinLightIntensity - (defaultLightIntensity + 50)) < 255){
-              analogWrite(PIN_PWM_L, lPinLightIntensity - (defaultLightIntensity + 50));
-            }
-            else{
-              analogWrite(PIN_PWM_L, 255);
-            }
-          }
-          else{
-            analogWrite(PIN_PWM_L, 0);
-          }
-
-          //obracanie sie lazika w wybranym kierunku za pomoca CH5 z predkoscia CH6
-          if(ch5Signal < 1300 || ch5Signal > 1700){
-            if(ch5Signal < 1300){
-              digitalWrite(PIN_DIR_R, HIGH);
-              digitalWrite(PIN_DIR_L, LOW);
-            }
-            else if(ch5Signal > 1700){
-              digitalWrite(PIN_DIR_R, LOW);
-              digitalWrite(PIN_DIR_L, HIGH);
-            }
-
-            analogWrite(PIN_PWM_R, 255);
-            analogWrite(PIN_PWM_L, 255);
-            
-            // if(ch6Signal >= MAX_CONTROLER_INPUT){
-            //   analogWrite(PIN_PWM_R, 255);
-            //   analogWrite(PIN_PWM_L, 255);
-            // }
-            // else if(ch6Signal <= MIN_CONTROLER_INPUT){
-            //   analogWrite(PIN_PWM_R, 0);
-            //   analogWrite(PIN_PWM_L, 0);
-            // }
-            // else{
-            //   analogWrite(PIN_PWM_R, abs((ch6Signal - 1000)/4));
-            //   analogWrite(PIN_PWM_L, abs((ch6Signal - 1000)/4));
-            // }
-          }
+  //zatrzymanie lazika jesli kontroler jest wylaczony
+  if(speedR < 930 || speedR > 2070 || speedL < 930 || speedL > 2070 || ((ch7Signal > 1300 && ch7Signal < 1700) || ch7Signal < 800)) {
+    analogWrite(PIN_PWM_R, 0);
+    analogWrite(PIN_PWM_L, 0);
+  }
+  else {
+    if(speedR > (BASIC_CONTROLER_INPUT + 50) || speedR < (BASIC_CONTROLER_INPUT - 50) || speedL > (BASIC_CONTROLER_INPUT + 50) || speedL < (BASIC_CONTROLER_INPUT - 50)) {
+      if(speedR <= MIN_CONTROLER_INPUT) {
+        analogWrite(PIN_PWM_R, 255);
+        digitalWrite(PIN_DIR_R, LOW);
+      }
+      else if(speedR >= MAX_CONTROLER_INPUT) {
+        analogWrite(PIN_PWM_R, 255);
+        digitalWrite(PIN_DIR_R, HIGH);
+      }
+      else {
+        if((speedR <= BASIC_CONTROLER_INPUT)) {
+          analogWrite(PIN_PWM_R, abs(speedR - BASIC_CONTROLER_INPUT)/2);
+          digitalWrite(PIN_DIR_R, LOW);
         }
-        else{
-          if(speedR <= MIN_CONTROLER_INPUT){
-            analogWrite(PIN_PWM_R, 255);
-            digitalWrite(PIN_DIR_R, LOW);
-          }
-          else if(speedR >= MAX_CONTROLER_INPUT){
-            analogWrite(PIN_PWM_R, 255);
-            digitalWrite(PIN_DIR_R, HIGH);
-          }
-          else {
-            if((speedR <= BASIC_CONTROLER_INPUT)){
-              analogWrite(PIN_PWM_R, abs(speedR - BASIC_CONTROLER_INPUT)/2);
-              digitalWrite(PIN_DIR_R, LOW);
-            }
-            else {
-              analogWrite(PIN_PWM_R, (speedR - BASIC_CONTROLER_INPUT)/2);
-              digitalWrite(PIN_DIR_R, HIGH);
-            }
-          }
-          
-          if(speedL <= MIN_CONTROLER_INPUT){
-            analogWrite(PIN_PWM_L, 255);
-            digitalWrite(PIN_DIR_L, LOW);
-          }
-          else if(speedL >= MAX_CONTROLER_INPUT){
-            analogWrite(PIN_PWM_L, 255);
-            digitalWrite(PIN_DIR_L, HIGH);
-          }
-          else {
-            if((speedL <= BASIC_CONTROLER_INPUT)){
-              analogWrite(PIN_PWM_L, abs(speedL - BASIC_CONTROLER_INPUT)/2);
-              digitalWrite(PIN_DIR_L, LOW);
-            }
-            else {
-              analogWrite(PIN_PWM_L, (speedL - BASIC_CONTROLER_INPUT)/2);
-              digitalWrite(PIN_DIR_L, HIGH);
-            }
-          }
+        else {
+          analogWrite(PIN_PWM_R, (speedR - BASIC_CONTROLER_INPUT)/2);
+          digitalWrite(PIN_DIR_R, HIGH);
         }
       }
-      else if(autoModStatus == true)
-      {
+      
+      if(speedL <= MIN_CONTROLER_INPUT) {
+        analogWrite(PIN_PWM_L, 255);
+        digitalWrite(PIN_DIR_L, LOW);
+      }
+      else if(speedL >= MAX_CONTROLER_INPUT) {
+        analogWrite(PIN_PWM_L, 255);
+        digitalWrite(PIN_DIR_L, HIGH);
+      }
+      else {
+        if((speedL <= BASIC_CONTROLER_INPUT)) {
+          analogWrite(PIN_PWM_L, abs(speedL - BASIC_CONTROLER_INPUT)/2);
+          digitalWrite(PIN_DIR_L, LOW);
+        }
+        else {
+          analogWrite(PIN_PWM_L, (speedL - BASIC_CONTROLER_INPUT)/2);
+          digitalWrite(PIN_DIR_L, HIGH);
+        }
+      }
+    }
+    else if(autoModStatus) {
+      //obracanie sie lazika w wybranym kierunku za pomoca CH5 z predkoscia CH6
+      if(ch5Signal < 1300 || ch5Signal > 1700){
+        if(ch5Signal < 1300){
+          digitalWrite(PIN_DIR_R, HIGH);
+          digitalWrite(PIN_DIR_L, LOW);
+        }
+        else if(ch5Signal > 1700){
+          digitalWrite(PIN_DIR_R, LOW);
+          digitalWrite(PIN_DIR_L, HIGH);
+        }
+
+        analogWrite(PIN_PWM_R, 255);
+        analogWrite(PIN_PWM_L, 255);
+        
+        // if(ch6Signal >= MAX_CONTROLER_INPUT){
+        //   analogWrite(PIN_PWM_R, 255);
+        //   analogWrite(PIN_PWM_L, 255);
+        // }
+        // else if(ch6Signal <= MIN_CONTROLER_INPUT){
+        //   analogWrite(PIN_PWM_R, 0);
+        //   analogWrite(PIN_PWM_L, 0);
+        // }
+        // else{
+        //   analogWrite(PIN_PWM_R, abs((ch6Signal - 1000)/4));
+        //   analogWrite(PIN_PWM_L, abs((ch6Signal - 1000)/4));
+        // }
+      }
+      else {
         int speed[2];
         digitalWrite(PIN_DIR_R, HIGH);
         digitalWrite(PIN_DIR_L, HIGH);
@@ -249,31 +212,64 @@ void loop() {
 
         analogWrite(PIN_PWM_R, speed[1]);
         analogWrite(PIN_PWM_L, speed[0]);
+        // rPinLightIntensity = analogRead(R_PIN);
+        // lPinLightIntensity = analogRead(L_PIN);
+        
+        // if(rPinLightIntensity > defaultLightIntensity + 50){
+        //   digitalWrite(PIN_DIR_R, HIGH);
+          
+        //   if((rPinLightIntensity - (defaultLightIntensity + 50)) < 255){
+        //     analogWrite(PIN_PWM_R, rPinLightIntensity - (defaultLightIntensity + 50));
+        //   }
+        //   else{
+        //     analogWrite(PIN_PWM_R, 255);
+        //   }
+        // }
+        // else{
+        //   analogWrite(PIN_PWM_R, 0);
+        // }
+        
+        // if(lPinLightIntensity > defaultLightIntensity + 50){
+        //   digitalWrite(PIN_DIR_L, HIGH);
+          
+        //   if((lPinLightIntensity - (defaultLightIntensity + 50)) < 255){
+        //     analogWrite(PIN_PWM_L, lPinLightIntensity - (defaultLightIntensity + 50));
+        //   }
+        //   else{
+        //     analogWrite(PIN_PWM_L, 255);
+        //   }
+        // }
+        // else{
+        //   analogWrite(PIN_PWM_L, 0);
+        // }
       }
     }
+    else{
+      analogWrite(PIN_PWM_R, 0);
+      analogWrite(PIN_PWM_L, 0);
+    }
+  }
+  delay(10);
 
-    delay(10);
+  // if(!hcsr_getDistance(0)) Serial.print("ERROR");
+  // else Serial.print(hcsr_getDistance(0));
 
-    // if(!hcsr_getDistance(0)) Serial.print("ERROR");
-    // else Serial.print(hcsr_getDistance(0));
-
-    // Serial.print("\t");
-    // delay(30);
-    // if(!hcsr_getDistance(1)) Serial.print("ERROR");
-    // else Serial.print(hcsr_getDistance(1));
-    // Serial.print("\n");
-
+  // Serial.print("\t");
+  // delay(30);
+  // if(!hcsr_getDistance(1)) Serial.print("ERROR");
+  // else Serial.print(hcsr_getDistance(1));
+  // Serial.print("\n");
 }
 
 void hcsr_begin(int index, int echoPin, int trigPin)
-  {
-    echo [index] = echoPin;
-    trig [index] = trigPin;
+{
+  echo [index] = echoPin;
+  trig [index] = trigPin;
 
-    pinMode(echo[index], INPUT);
-    pinMode(trig[index], OUTPUT);
+  pinMode(echo[index], INPUT);
+  pinMode(trig[index], OUTPUT);
 
-  }
+}
 
 float hcsr_getDistance(int index)
 {

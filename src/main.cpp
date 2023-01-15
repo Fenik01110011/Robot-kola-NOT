@@ -184,34 +184,75 @@ void loop() {
       }
       else {
         int speed[2];
-        digitalWrite(PIN_DIR_R, HIGH);
-        digitalWrite(PIN_DIR_L, HIGH);
+        float speedPercentage = 1;
+        if(speedPercentage < 0 || speedPercentage > 1)
+        {
+          speedPercentage = 1;
+          Serial.print("Speed percentage error.");
+        }
 
-        for(int i = 0; i < 2; i++)
+        for(int i = 0; i < 2; i++) 
         {
           distanceReading[i] = hcsr_getDistance(i);
-          Serial.print(distanceReading[i]);
-          Serial.print("\t");
-
-          if(distanceReading[i] >= 255)
-            speed[i] = 255;
-          else if(distanceReading[i] < 20)
-          {
-            for(int j = 0; j < 2; j ++)
-              speed[j] = 0;
-            break;
-          }
-          else if(distanceReading[i] < 40)
-            speed[i] = 0;
-          else
-            speed[i] = 255 - (255 - distanceReading[i]);
-          
-          delay(30);
+          // Serial.print(distanceReading[i]);
+          // Serial.print("\t");
+          delay(10);
         }
-        Serial.print("\n");
+        //Serial.print("\n");
 
-        analogWrite(PIN_PWM_R, speed[1]);
-        analogWrite(PIN_PWM_L, speed[0]);
+
+        if(distanceReading[0] >= 255 && distanceReading[1] >= 255)
+        {
+          digitalWrite(PIN_DIR_R, HIGH);
+          digitalWrite(PIN_DIR_L, HIGH);
+          speed[0] = 255;
+          speed[1] = 255;
+        }
+        else if(distanceReading[0] < 40 || distanceReading[1] < 40)
+        {
+          digitalWrite(PIN_DIR_R, LOW);
+          digitalWrite(PIN_DIR_L, LOW);
+          speed[0] = 128;
+          speed[1] = 128;
+          analogWrite(PIN_PWM_R, speed[1]*speedPercentage);
+          analogWrite(PIN_PWM_L, speed[0]*speedPercentage);
+          delay(500);
+          digitalWrite(PIN_DIR_R, LOW);
+          digitalWrite(PIN_DIR_L, HIGH);
+          speed[0] = 255;
+          speed[1] = 255;
+          analogWrite(PIN_PWM_R, speed[1]*speedPercentage);
+          analogWrite(PIN_PWM_L, speed[0]*speedPercentage);
+          delay(500);
+        }
+        else if(distanceReading[0] < 80 || distanceReading[1] < 80) 
+        {
+          digitalWrite(PIN_DIR_R, LOW);
+          digitalWrite(PIN_DIR_L, HIGH);
+          speed[0] = 255;
+          speed[1] = 255;
+          analogWrite(PIN_PWM_R, speed[1]*speedPercentage);
+          analogWrite(PIN_PWM_L, speed[0]*speedPercentage);
+          delay(300);
+        }
+        else
+        {
+          digitalWrite(PIN_DIR_R, HIGH);
+          digitalWrite(PIN_DIR_L, HIGH);
+          if(distanceReading[0] >= distanceReading[1])
+          {
+            speed[0] = 255;
+            speed[1] = 255 - (255 - distanceReading[1]);
+          }
+          else
+          {
+            speed[1] = 255;
+            speed[0] = 255 - (255 - distanceReading[0]);
+          }
+        }
+
+        analogWrite(PIN_PWM_R, speed[1]*speedPercentage);
+        analogWrite(PIN_PWM_L, speed[0]*speedPercentage);
         // rPinLightIntensity = analogRead(R_PIN);
         // lPinLightIntensity = analogRead(L_PIN);
         
@@ -280,6 +321,62 @@ float hcsr_getDistance(int index)
   digitalWrite(trig[index], LOW);
   
   h_time = pulseIn(echo[index], HIGH);
-  if(h_time < 0 || h_time >= 23200) return 0;
+  //if(h_time < 0 || h_time >= 23200) return -1;
   return h_time / 58.00;
 }
+
+// for(int i = 0; i < 2; i++)
+//         {
+//           if(distanceReading[i] >= 255)
+//           {
+//             digitalWrite(PIN_DIR_R, HIGH);
+//             digitalWrite(PIN_DIR_L, HIGH);
+//             speed[i] = 255;
+//           }
+//           else if(distanceReading[i] < 20)
+//           {
+//             digitalWrite(PIN_DIR_R, LOW);
+//             digitalWrite(PIN_DIR_L, LOW);
+//             for(int j = 0; j < 2; j ++)
+//               speed[j] = 128;
+//             delay(100);
+//             break;
+//           }
+//           else if(distanceReading[i] < 50) 
+//           {
+//             digitalWrite(PIN_DIR_R, LOW);
+//             digitalWrite(PIN_DIR_L, HIGH);
+//             for(int j = 0; j < 2; j ++)
+//               speed[j] = 255;
+//             delay(100);
+//             break;
+//           }
+//           else
+//           {
+//             digitalWrite(PIN_DIR_R, HIGH);
+//             digitalWrite(PIN_DIR_L, HIGH);
+//             if(distanceReading[0] >= distanceReading[1])
+//             {
+//               speed[0] = 255;
+//               speed[1] = 255 - (255 - distanceReading[1]);
+//             }
+//             else
+//             {
+//               speed[1] = 255;
+//               speed[0] = 255 - (255 - distanceReading[0]);
+//             }
+//             break;
+//           }
+//         }
+
+
+        // else if(distanceReading[0] < 0 || distanceReading[1] < 0) 
+        // {
+        //   digitalWrite(PIN_DIR_R, LOW);
+        //   digitalWrite(PIN_DIR_L, HIGH);
+        //   speed[0] = 255;
+        //   speed[1] = 255;
+        //   analogWrite(PIN_PWM_R, speed[1]*speedPercentage);
+        //   analogWrite(PIN_PWM_L, speed[0]*speedPercentage);
+        //   delay(300);
+        // }

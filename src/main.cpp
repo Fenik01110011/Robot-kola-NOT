@@ -12,7 +12,7 @@
 #define PIN_CH2_CONTROLER 7 //prawy joystick, predkosc prawych kol
 #define PIN_CH3_CONTROLER 8 //lewy joystick, predkosc lewych kol
 //#define PIN_CH4_CONTROLER 9 //lewy czujnik
-//#define PIN_CH5_CONTROLER 10 //obracanie sie lazika
+#define PIN_CH5_CONTROLER 10 //obracanie sie lazika
 //#define PIN_CH6_CONTROLER 11 //szybkosc autoatycznego obracania sie lazika odnoscie CH5 
 #define PIN_CH7_CONTROLER 12 
 //#define PIN_CH8_CONTROLER 13
@@ -43,13 +43,15 @@ int lPinLightIntensity = 0;
 int speedR = 0;
 int speedL = 0;
 
-//int ch5Signal;
+int ch5Signal;
 //int ch6Signal;
 int ch7Signal;
 
 bool autoModStatus = false;
 bool blackLineDetected = false;
 int sensorResultant = 0;
+int blackLaneTimeLost = 0;
+int blackLaneTimeLostLimit = 100; //100pkt = 6 sec searching black lane in this configuration
 
 //Ultrasonic distance sensor (0 - right sensor, 1 - left sensor)
 int echo[2];
@@ -80,7 +82,7 @@ void setup() {
   pinMode(PIN_CH2_CONTROLER, INPUT);
   pinMode(PIN_CH3_CONTROLER, INPUT);
   //pinMode(PIN_CH4_CONTROLER, INPUT);
-  //pinMode(PIN_CH5_CONTROLER, INPUT);
+  pinMode(PIN_CH5_CONTROLER, INPUT);
   //pinMode(PIN_CH6_CONTROLER, INPUT);
   pinMode(PIN_CH7_CONTROLER, INPUT);
   //pinMode(PIN_CH8_CONTROLER, INPUT);
@@ -101,7 +103,7 @@ void loop() {
   //Serial.println(pulseIn(PIN_CH4_CONTROLER, HIGH, PULSEIN_TIMEOUT));
   speedR = pulseIn(PIN_CH2_CONTROLER, HIGH, PULSEIN_TIMEOUT);
   speedL = pulseIn(PIN_CH3_CONTROLER, HIGH, PULSEIN_TIMEOUT);
-  //ch5Signal = pulseIn(PIN_CH5_CONTROLER, HIGH, PULSEIN_TIMEOUT);
+  ch5Signal = pulseIn(PIN_CH5_CONTROLER, HIGH, PULSEIN_TIMEOUT);
   //ch6Signal = pulseIn(PIN_CH6_CONTROLER, HIGH, PULSEIN_TIMEOUT);
   ch7Signal = pulseIn(PIN_CH7_CONTROLER, HIGH, PULSEIN_TIMEOUT);
 
@@ -217,7 +219,7 @@ void autoMode()
   for(int i = 0; i <= 5; i++)
   {
     lineFollowerPinsValue[i] = digitalRead(lineFollowerPins[i]);
-    Serial.println(lineFollowerPinsValue[i]);
+    //Serial.println(lineFollowerPinsValue[i]);
   }
 
   blackLineDetected = false;
@@ -225,8 +227,10 @@ void autoMode()
     if(lineFollowerPinsValue[i] == false)
       blackLineDetected = true;
 
-  if(blackLineDetected)
+  if(ch5Signal < 1700 && blackLineDetected)
   {
+    blackLaneTimeLost = 0;
+
     if(lineFollowerPinsValue[5] || distanceReading[0] < 20 || distanceReading[1] < 20)
     {
       speed[0] = 0;
@@ -287,73 +291,79 @@ void autoMode()
   }
   else
   {
-    if(sensorResultant >= 0)
+    if(ch5Signal < 1700 && (ch5Signal < 1300 || blackLaneTimeLost < blackLaneTimeLostLimit))
     {
-      digitalWrite(PIN_DIR_R, LOW);
-      digitalWrite(PIN_DIR_L, HIGH);
-      speed[0] = 255;
-      speed[1] = 255;
+      if(sensorResultant >= 0)
+      {
+        digitalWrite(PIN_DIR_R, LOW);
+        digitalWrite(PIN_DIR_L, HIGH);
+        speed[0] = 255;
+        speed[1] = 255;
+      }
+      else
+      {
+        digitalWrite(PIN_DIR_R, HIGH);
+        digitalWrite(PIN_DIR_L, LOW);
+        speed[0] = 255;
+        speed[1] = 255;
+      }
+      blackLaneTimeLost++;
+      //Serial.println(blackLaneTimeLost);
     }
     else
     {
-      digitalWrite(PIN_DIR_R, HIGH);
-      digitalWrite(PIN_DIR_L, LOW);
-      speed[0] = 255;
-      speed[1] = 255;
+      if(distanceReading[0] < 40 || distanceReading[1] < 40 || lineFollowerPinsValue[5])
+      {
+        digitalWrite(PIN_DIR_R, LOW);
+        digitalWrite(PIN_DIR_L, LOW);
+        speed[0] = 128;
+        speed[1] = 128;
+        analogWrite(PIN_PWM_R, speed[1]*speedPercentage);
+        analogWrite(PIN_PWM_L, speed[0]*speedPercentage);
+        delay(500);
+        digitalWrite(PIN_DIR_R, LOW);
+        digitalWrite(PIN_DIR_L, HIGH);
+        speed[0] = 255;
+        speed[1] = 255;
+        analogWrite(PIN_PWM_R, speed[1]*speedPercentage);
+        analogWrite(PIN_PWM_L, speed[0]*speedPercentage);
+        delay(500);
+      }
+      else if(distanceReading[0] >= 255 && distanceReading[1] >= 255)
+      {
+        digitalWrite(PIN_DIR_R, HIGH);
+        digitalWrite(PIN_DIR_L, HIGH);
+        speed[0] = 255;
+        speed[1] = 255;
+      }
+      else if(distanceReading[0] < 80 || distanceReading[1] < 80) 
+      {
+        digitalWrite(PIN_DIR_R, LOW);
+        digitalWrite(PIN_DIR_L, HIGH);
+        speed[0] = 255;
+        speed[1] = 255;
+        analogWrite(PIN_PWM_R, speed[1]*speedPercentage);
+        analogWrite(PIN_PWM_L, speed[0]*speedPercentage);
+        delay(300);
+      }
+      else
+      {
+        digitalWrite(PIN_DIR_R, HIGH);
+        digitalWrite(PIN_DIR_L, HIGH);
+        if(distanceReading[0] >= distanceReading[1])
+        {
+          speed[0] = 255;
+          speed[1] = 255 - (255 - distanceReading[1]);
+        }
+        else
+        {
+          speed[0] = 255 - (255 - distanceReading[0]);
+          speed[1] = 255;
+        }
+      }
     }
   }
-  // else
-  // {
-  //   if(distanceReading[0] < 40 || distanceReading[1] < 40 || lineFollowerPinsValue[5])
-  //   {
-  //     digitalWrite(PIN_DIR_R, LOW);
-  //     digitalWrite(PIN_DIR_L, LOW);
-  //     speed[0] = 128;
-  //     speed[1] = 128;
-  //     analogWrite(PIN_PWM_R, speed[1]*speedPercentage);
-  //     analogWrite(PIN_PWM_L, speed[0]*speedPercentage);
-  //     delay(500);
-  //     digitalWrite(PIN_DIR_R, LOW);
-  //     digitalWrite(PIN_DIR_L, HIGH);
-  //     speed[0] = 255;
-  //     speed[1] = 255;
-  //     analogWrite(PIN_PWM_R, speed[1]*speedPercentage);
-  //     analogWrite(PIN_PWM_L, speed[0]*speedPercentage);
-  //     delay(500);
-  //   }
-  //   else if(distanceReading[0] >= 255 && distanceReading[1] >= 255)
-  //   {
-  //     digitalWrite(PIN_DIR_R, HIGH);
-  //     digitalWrite(PIN_DIR_L, HIGH);
-  //     speed[0] = 255;
-  //     speed[1] = 255;
-  //   }
-  //   else if(distanceReading[0] < 80 || distanceReading[1] < 80) 
-  //   {
-  //     digitalWrite(PIN_DIR_R, LOW);
-  //     digitalWrite(PIN_DIR_L, HIGH);
-  //     speed[0] = 255;
-  //     speed[1] = 255;
-  //     analogWrite(PIN_PWM_R, speed[1]*speedPercentage);
-  //     analogWrite(PIN_PWM_L, speed[0]*speedPercentage);
-  //     delay(300);
-  //   }
-  //   else
-  //   {
-  //     digitalWrite(PIN_DIR_R, HIGH);
-  //     digitalWrite(PIN_DIR_L, HIGH);
-  //     if(distanceReading[0] >= distanceReading[1])
-  //     {
-  //       speed[0] = 255;
-  //       speed[1] = 255 - (255 - distanceReading[1]);
-  //     }
-  //     else
-  //     {
-  //       speed[0] = 255 - (255 - distanceReading[0]);
-  //       speed[1] = 255;
-  //     }
-  //   }
-  // }
+  
   analogWrite(PIN_PWM_R, speed[1]*speedPercentage);
   analogWrite(PIN_PWM_L, speed[0]*speedPercentage);
 }
